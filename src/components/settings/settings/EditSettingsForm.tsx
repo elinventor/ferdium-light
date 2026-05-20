@@ -61,11 +61,6 @@ const messages = defineMessages({
     id: 'settings.app.headlineServices',
     defaultMessage: 'Services',
   },
-  sentryInfo: {
-    id: 'settings.app.sentryInfo',
-    defaultMessage:
-      'Sending telemetry data allows us to find errors in Ferdium - we will not send any personal information like your message data!',
-  },
   hibernateInfo: {
     id: 'settings.app.hibernateInfo',
     defaultMessage:
@@ -988,11 +983,6 @@ class EditSettingsForm extends Component<IProps, IState> {
                 <Hr />
 
                 <Select field={form.$('webRTCIPHandlingPolicy')} />
-
-                <Toggle {...form.$('sentry').bind()} />
-                <p className="settings__help">
-                  {intl.formatMessage(messages.sentryInfo)}
-                </p>
 
                 <p className="settings__help">
                   {intl.formatMessage(messages.appRestartRequired)}

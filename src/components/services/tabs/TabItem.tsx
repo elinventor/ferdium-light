@@ -3,6 +3,7 @@ import { mdiExclamation, mdiVolumeSource } from '@mdi/js';
 import classnames from 'classnames';
 import { noop } from 'lodash';
 import { autorun, makeObservable, observable, reaction } from 'mobx';
+import type { IReactionDisposer } from 'mobx';
 import { inject, observer } from 'mobx-react';
 import ms from 'ms';
 import { Component } from 'react';
@@ -156,6 +157,14 @@ class TabItem extends Component<IProps, IState> {
 
   private pollAnswerTimeoutId: NodeJS.Timeout | null = null;
 
+  private longPressReactionDisposer: IReactionDisposer | null = null;
+
+  private debugAutorunDisposer: IReactionDisposer | null = null;
+
+  private onKeyDown: ((e: KeyboardEvent) => void) | null = null;
+
+  private onKeyUp: ((e: KeyboardEvent) => void) | null = null;
+
   constructor(props) {
     super(props);
 
@@ -165,12 +174,10 @@ class TabItem extends Component<IProps, IState> {
       showShortcutIndex: false,
     };
 
-    reaction(
+    this.longPressReactionDisposer = reaction(
       () => this.props.stores!.settings.app.enableLongPressServiceHint,
-      () => {
-        this.checkForLongPress(
-          this.props.stores!.settings.app.enableLongPressServiceHint,
-        );
+      (enabled) => {
+        this.checkForLongPress(enabled);
       },
     );
   }
@@ -182,14 +189,20 @@ class TabItem extends Component<IProps, IState> {
   };
 
   checkForLongPress = enableLongPressServiceHint => {
-    if (enableLongPressServiceHint) {
-      document.addEventListener('keydown', e => {
-        this.handleShortcutIndex(e);
-      });
+    if (this.onKeyDown) {
+      document.removeEventListener('keydown', this.onKeyDown);
+      this.onKeyDown = null;
+    }
+    if (this.onKeyUp) {
+      document.removeEventListener('keyup', this.onKeyUp);
+      this.onKeyUp = null;
+    }
 
-      document.addEventListener('keyup', e => {
-        this.handleShortcutIndex(e, false);
-      });
+    if (enableLongPressServiceHint) {
+      this.onKeyDown = (e: KeyboardEvent) => this.handleShortcutIndex(e);
+      this.onKeyUp = (e: KeyboardEvent) => this.handleShortcutIndex(e, false);
+      document.addEventListener('keydown', this.onKeyDown);
+      document.addEventListener('keyup', this.onKeyUp);
     }
   };
 
@@ -197,7 +210,7 @@ class TabItem extends Component<IProps, IState> {
     const { service, stores } = this.props;
 
     if (IS_SERVICE_DEBUGGING_ENABLED) {
-      autorun(() => {
+      this.debugAutorunDisposer = autorun(() => {
         if (Date.now() - service.lastPoll < ms('0.2s')) {
           this.isPolled = true;
 
@@ -228,6 +241,21 @@ class TabItem extends Component<IProps, IState> {
   }
 
   componentWillUnmount() {
+    this.longPressReactionDisposer?.();
+    this.longPressReactionDisposer = null;
+
+    this.debugAutorunDisposer?.();
+    this.debugAutorunDisposer = null;
+
+    if (this.onKeyDown) {
+      document.removeEventListener('keydown', this.onKeyDown);
+      this.onKeyDown = null;
+    }
+    if (this.onKeyUp) {
+      document.removeEventListener('keyup', this.onKeyUp);
+      this.onKeyUp = null;
+    }
+
     if (this.pollTimeoutId) {
       clearTimeout(this.pollTimeoutId);
     }

@@ -105,11 +105,6 @@ const shortcutSettings = new Settings('shortcuts', DEFAULT_SHORTCUTS);
 const retrieveSettingValue = (key: string, defaultValue: boolean | string) =>
   ifUndefined<boolean | string>(settings.get(key), defaultValue);
 
-// TODO: Commenting out sentry to fix https://github.com/ferdium/ferdium-app/issues/814
-// if (retrieveSettingValue('sentry', DEFAULT_APP_SETTINGS.sentry)) {
-//   // eslint-disable-next-line global-require
-//   require('./sentry');
-// }
 
 const liftSingleInstanceLock = retrieveSettingValue(
   'liftSingleInstanceLock',
@@ -561,7 +556,13 @@ if (argv['auth-negotiate-delegate-whitelist']) {
 }
 
 // Apply workaround for https://github.com/electron/electron/pull/26432
-app.commandLine.appendSwitch('disable-features', 'CrossOriginOpenerPolicy');
+// Also disable BackForwardCache (each navigated page held in RAM) and enable
+// Chromium's built-in low-memory profile which tightens caches and GC thresholds.
+app.commandLine.appendSwitch(
+  'disable-features',
+  'CrossOriginOpenerPolicy,BackForwardCache',
+);
+app.commandLine.appendSwitch('enable-low-end-device-mode');
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

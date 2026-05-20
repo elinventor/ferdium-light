@@ -120,10 +120,6 @@ const messages = defineMessages({
     id: 'settings.app.form.searchEngine',
     defaultMessage: 'Search engine',
   },
-  sentry: {
-    id: 'settings.app.form.sentry',
-    defaultMessage: 'Send telemetry data',
-  },
   translatorEngine: {
     id: 'settings.app.form.translatorEngine',
     defaultMessage: 'Translator Engine',
@@ -439,7 +435,6 @@ class EditSettingsScreen extends Component<
       searchEngine: settingsData.searchEngine,
       translatorEngine: settingsData.translatorEngine,
       translatorLanguage: settingsData.translatorLanguage,
-      sentry: Boolean(settingsData.sentry),
       hibernateOnStartup: Boolean(settingsData.hibernateOnStartup),
       hibernationStrategy: Number(settingsData.hibernationStrategy),
       wakeUpStrategy: Number(settingsData.wakeUpStrategy),
@@ -514,7 +509,6 @@ class EditSettingsScreen extends Component<
 
     const requiredRestartKeys = [
       'webRTCIPHandlingPolicy',
-      'sentry',
       'searchEngine',
       'enableSpellchecking',
       'spellcheckerLanguage',
@@ -856,15 +850,6 @@ class EditSettingsScreen extends Component<
           ),
           default: DEFAULT_APP_SETTINGS.translatorLanguage,
           options: translatorLanguages,
-        },
-        sentry: {
-          label: intl.formatMessage(messages.sentry),
-          value: ifUndefined<boolean>(
-            settings.all.app.sentry,
-            DEFAULT_APP_SETTINGS.sentry,
-          ),
-          default: DEFAULT_APP_SETTINGS.sentry,
-          type: 'checkbox',
         },
         hibernateOnStartup: {
           label: intl.formatMessage(messages.hibernateOnStartup),

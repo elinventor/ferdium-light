@@ -2,6 +2,7 @@ import { basename, join } from 'node:path';
 import { webContents } from '@electron/remote';
 import { ipcRenderer } from 'electron';
 import { action, autorun, computed, makeObservable, observable } from 'mobx';
+import type { IReactionDisposer } from 'mobx';
 import type ElectronWebView from 'react-electron-web-view';
 
 import { v4 as uuidV4 } from 'uuid';
@@ -21,6 +22,44 @@ const debug = require('../preload-safe-debug')('Ferdium:Service');
 // This is needed to prevent events of the same partition from being registered multiple times (when using custom sandboxes)
 const activePartitions = new Set<string>();
 
+// Single module-level registry for active download items keyed by downloadId.
+// This avoids accumulating one ipcRenderer listener per download.
+const activeDownloadItems = new Map<string, Electron.DownloadItem>();
+
+ipcRenderer.on('toggle-pause-download', (_, data) => {
+  const item = data?.downloadId ? activeDownloadItems.get(data.downloadId) : undefined;
+  if (item) {
+    if (item.isPaused()) {
+      item.resume();
+    } else {
+      item.pause();
+    }
+    window['ferdium'].actions.app.updateDownload({
+      id: data.downloadId,
+      paused: item.isPaused(),
+    });
+  } else if (data?.downloadId === undefined) {
+    for (const [id, it] of activeDownloadItems) {
+      if (it.isPaused()) {
+        it.resume();
+      } else {
+        it.pause();
+      }
+      window['ferdium'].actions.app.updateDownload({ id, paused: it.isPaused() });
+    }
+  }
+});
+
+ipcRenderer.on('stop-download', (_, data) => {
+  if (data === undefined) {
+    for (const it of activeDownloadItems.values()) {
+      it.cancel();
+    }
+  } else {
+    activeDownloadItems.get(data.downloadId)?.cancel();
+  }
+});
+
 interface DarkReaderInterface {
   brightness: number;
   contrast: number;
@@ -36,6 +75,8 @@ export default class Service {
   _webview: ElectronWebView | null = null;
 
   timer: NodeJS.Timeout | null = null;
+
+  private autoRunDisposer: IReactionDisposer | null = null;
 
   events = {};
 
@@ -248,9 +289,18 @@ export default class Service {
       this.isHibernationRequested = true;
     }
 
-    autorun((): void => {
+    this.autoRunDisposer = autorun((): void => {
       this._setAutoRun();
     });
+  }
+
+  dispose(): void {
+    this.autoRunDisposer?.();
+    this.autoRunDisposer = null;
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
   }
 
   @action _didStartLoading(): void {
@@ -601,8 +651,12 @@ export default class Service {
           });
           debug('download updated', event, state);
         });
+        activeDownloadItems.set(downloadId, item);
+
         item.addListener('done', (event, state) => {
           debug('download done', event, state);
+          activeDownloadItems.delete(downloadId);
+
           if (state === 'completed') {
             debug('Download successfully');
           } else {
@@ -620,28 +674,6 @@ export default class Service {
             totalBytes: item.getTotalBytes(),
             state,
           });
-        });
-
-        ipcRenderer.on('toggle-pause-download', (_, data) => {
-          debug('toggle-pause-download', item.isPaused(), item.getState());
-          if (data.downloadId === downloadId || data.downloadId === undefined) {
-            if (item.isPaused()) {
-              item.resume();
-            } else {
-              item.pause();
-            }
-          }
-          debug('toggle-pause-download', item.isPaused(), item.getState());
-          window['ferdium'].actions.app.updateDownload({
-            id: downloadId,
-            paused: item.isPaused(),
-          });
-        });
-
-        ipcRenderer.on('stop-download', (_, data) => {
-          if (data === undefined || downloadId === data.downloadId) {
-            item.cancel();
-          }
         });
       });
       webviewWebContents.on('login', (event, _, authInfo, callback) => {

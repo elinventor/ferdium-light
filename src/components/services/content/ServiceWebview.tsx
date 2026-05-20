@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { action, makeObservable, observable, reaction } from 'mobx';
+import type { IReactionDisposer } from 'mobx';
 import { observer } from 'mobx-react';
 import { Component, type ReactElement } from 'react';
 import ElectronWebView from 'react-electron-web-view';
@@ -23,6 +24,8 @@ interface IProps {
 class ServiceWebview extends Component<IProps> {
   @observable webview: ElectronWebView | null = null;
 
+  private webviewReactionDisposer: IReactionDisposer | null = null;
+
   constructor(props: IProps) {
     super(props);
 
@@ -31,7 +34,7 @@ class ServiceWebview extends Component<IProps> {
 
     makeObservable(this);
 
-    reaction(
+    this.webviewReactionDisposer = reaction(
       () => this.webview,
       () => {
         if (this.webview?.view) {
@@ -54,6 +57,8 @@ class ServiceWebview extends Component<IProps> {
 
   componentWillUnmount(): void {
     const { service, detachService } = this.props;
+    this.webviewReactionDisposer?.();
+    this.webviewReactionDisposer = null;
     detachService({ service });
   }
 

@@ -1,3 +1,66 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) — [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.0.0] - 2026-05-20
+
+First versioned release of this fork. Focused on memory efficiency, resource leak
+elimination, and supply chain hardening.
+
+### Changed
+
+- **Default hibernation enabled** — Services now hibernate after 5 minutes of inactivity
+  by default (`isHibernationEnabled` changed from `false` to `true`). Previously
+  hibernation had to be manually enabled per-service. Each hibernated service frees its
+  WebView renderer process, saving ~50–150 MB per idle service.
+- **DND polling reduced 6×** — System Do Not Disturb state is now checked every 30 seconds
+  instead of every 5 seconds, reducing background CPU pressure.
+- **Telemetry removed** — The Sentry error-reporting integration has been fully removed.
+  No data is transmitted to third-party servers.
+
+### Fixed
+
+- **IPC listener accumulation** (`src/models/Service.ts`) — `ipcRenderer.on('toggle-pause-download')`
+  and `ipcRenderer.on('stop-download')` were registered anew for every download and never
+  removed, accumulating indefinitely. Replaced with module-level handlers backed by a
+  `Map<downloadId, DownloadItem>` that cleans up when each download finishes.
+- **MobX reaction leak in ServiceWebview** (`src/components/services/content/ServiceWebview.tsx`)
+  — The `reaction()` created in the constructor was never disposed, leaving a live observer
+  after unmount. Disposer is now stored and called in `componentWillUnmount`.
+- **Keyboard listener accumulation in TabItem** (`src/components/services/tabs/TabItem.tsx`)
+  — `checkForLongPress()` added `keydown`/`keyup` listeners to `document` without removing
+  them on subsequent calls. Listener references are now stored and removed before re-adding,
+  and fully cleaned up in `componentWillUnmount`. Constructor `reaction()` and `autorun()`
+  disposers are also tracked and disposed.
+- **Service model autorun not disposed** (`src/models/Service.ts`) — The
+  `autorun(() => this._setAutoRun())` per service instance was never cleaned up. Added
+  `dispose()` that cancels the autorun and clears the polling timer.
+- **AppStore polling intervals untracked** (`src/stores/AppStore.ts`) — DND and update-check
+  `setInterval` handles were never stored, making them impossible to clear. Both are now
+  held as class properties and cleared in `_handleLogout`.
+
+### Removed
+
+- **Sentry / error telemetry** — Removed `src/sentry.ts`, all UI toggles and form fields
+  for the Sentry setting, and the `@sentry/electron` dependency from `package.json`.
+
+### Security
+
+- `frozen-lockfile = true` in `.npmrc` — `pnpm install` now fails when lockfile is out of
+  sync, preventing silent dependency substitution attacks.
+- `unsafe-perm` removed from `.npmrc` — postinstall scripts no longer run with elevated
+  privileges.
+- `audit-level = high` in `.npmrc` — install blocks on high-severity advisories.
+- `pnpm audit --audit-level=high` added as a mandatory CI gate before any build.
+- Added `SECURITY.md` with vulnerability reporting policy and supply chain practices.
+
+---
+
+## Upstream history (ferdium/ferdium-app up to 7.1.3)
+
 # [v6.2.0](https://github.com/ferdium/ferdium-app/compare/v6.1.0...v6.2.0) (2022-09-22)
 
 ### :warning: BREAKING CHANGES :warning:

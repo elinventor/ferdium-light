@@ -579,8 +579,8 @@ export const DEFAULT_APP_SETTINGS = {
   scheduledDNDStart: '17:00',
   scheduledDNDEnd: '09:00',
   hibernateOnStartup: true,
-  hibernationStrategy: '300', // seconds
-  wakeUpStrategy: '300', // seconds
+  hibernationStrategy: '60', // seconds -- hibernate after 1 minute idle
+  wakeUpStrategy: '0', // seconds -- 0 = disabled, services stay hibernated until clicked
   wakeUpHibernationStrategy: '0', // seconds -- 0 means do the same as hibernationStrategy
   wakeUpHibernationSplay: true,
   inactivityLock: 0,
@@ -594,7 +594,6 @@ export const DEFAULT_APP_SETTINGS = {
   serviceRibbonWidth: 68,
   sidebarServicesLocation: SIDEBAR_SERVICES_LOCATION_TOPLEFT,
   iconSize: iconSizeBias,
-  sentry: true,
   navigationBarBehaviour: 'custom',
   webRTCIPHandlingPolicy: disableWebRTCIPHandlingPolicy,
   searchEngine: SEARCH_ENGINE_STARTPAGE,
@@ -616,7 +615,7 @@ export const DEFAULT_APP_SETTINGS = {
   hideAllServicesWorkspace: false,
   liftSingleInstanceLock: false,
   enableLongPressServiceHint: false,
-  isTodosFeatureEnabled: true,
+  isTodosFeatureEnabled: false,
   customTodoServer: '',
   locale: 'en-US',
   keepAllWorkspacesLoaded: false,
@@ -626,7 +625,7 @@ export const DEFAULT_APP_SETTINGS = {
 
 export const DEFAULT_SERVICE_SETTINGS = {
   isEnabled: true,
-  isHibernationEnabled: false,
+  isHibernationEnabled: true,
   isWakeUpEnabled: true,
   isNotificationEnabled: true,
   isBadgeEnabled: true,

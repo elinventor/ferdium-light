@@ -136,6 +136,10 @@ export default class AppStore extends TypedStore {
 
   fetchDataInterval: NodeJS.Timeout | null = null;
 
+  private dndPollInterval: NodeJS.Timeout | null = null;
+
+  private updateCheckInterval: NodeJS.Timeout | null = null;
+
   @observable downloads: Download[] = [];
 
   @observable justFinishedDownloading: boolean = false;
@@ -217,9 +221,9 @@ export default class AppStore extends TypedStore {
     this._autoStart();
 
     // Check if system is muted
-    // There are no events to subscribe so we need to poll every 5s
+    // There are no events to subscribe so we need to poll (reduced to 30s to ease CPU pressure)
     this._systemDND();
-    setInterval(() => this._systemDND(), ms('5s'));
+    this.dndPollInterval = setInterval(() => this._systemDND(), ms('30s'));
 
     this.fetchDataInterval = setInterval(() => {
       this.stores.user.getUserInfoRequest.invalidate({
@@ -231,7 +235,7 @@ export default class AppStore extends TypedStore {
     }, ms('60m'));
 
     // Check for updates once every 4 hours
-    setInterval(() => this._checkForUpdates(), CHECK_INTERVAL);
+    this.updateCheckInterval = setInterval(() => this._checkForUpdates(), CHECK_INTERVAL);
     // Check for an update in 30s (need a delay to prevent Squirrel Installer lock file issues)
     setTimeout(() => this._checkForUpdates(), ms('30s'));
     ipcRenderer.on('autoUpdate', (_, data) => {
@@ -818,6 +822,15 @@ export default class AppStore extends TypedStore {
   _handleLogout() {
     if (!this.stores.user.isLoggedIn && this.fetchDataInterval !== null) {
       clearInterval(this.fetchDataInterval);
+      this.fetchDataInterval = null;
+    }
+    if (this.dndPollInterval !== null) {
+      clearInterval(this.dndPollInterval);
+      this.dndPollInterval = null;
+    }
+    if (this.updateCheckInterval !== null) {
+      clearInterval(this.updateCheckInterval);
+      this.updateCheckInterval = null;
     }
   }
 

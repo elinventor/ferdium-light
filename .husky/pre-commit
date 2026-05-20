@@ -1,3 +1,10 @@
+# Load nvm so pnpm is available when git runs the hook outside a shell session
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+# shellcheck disable=SC1091
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" --no-use
+# Use the version pinned in .nvmrc / package.json engines if nvm loaded
+command -v nvm >/dev/null 2>&1 && nvm use --silent 2>/dev/null || true
+
 # Conditionally invoke so as to avoid running pnpm commands if this is a clean checkout (ie before installing node modules)
 if ! [ -d node_modules ]; then
   echo "Skipping $0 hook as node modules are not installed" >&2

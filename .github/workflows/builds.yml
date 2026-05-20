@@ -190,6 +190,8 @@ jobs:
           pnpm lint
           pnpm reformat-files
           pnpm package
+      - name: Audit dependencies for known vulnerabilities
+        run: pnpm audit --audit-level=high
       - name: Run linter and tests
         run: |
           pnpm lint
@@ -294,6 +296,8 @@ jobs:
           pnpm reformat-files
           pnpm package
         working-directory: ./recipes
+      - name: Audit dependencies for known vulnerabilities
+        run: pnpm audit --audit-level=high
       - name: Run linter and tests
         run: |
           pnpm lint
@@ -388,6 +392,9 @@ jobs:
           pnpm reformat-files
           pnpm package
         working-directory: ./recipes
+        shell: bash
+      - name: Audit dependencies for known vulnerabilities
+        run: pnpm audit --audit-level=high
         shell: bash
       - name: Run linter and tests
         run: |
